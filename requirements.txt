@@ -1,0 +1,22 @@
+# Processing & Data
+pdfplumber
+tqdm
+
+# Core Utilities
+pyyaml
+python-dotenv==1.1.0
+
+
+# QDRANT
+
+qdrant-client>=1.17.0,<1.20.0
+langchain-qdrant==0.2.0
+rank-bm25==0.2.2
+pgvector>=0.3.0
+
+
+# NLP
+
+sentence-transformers==4.1.0
+
+# Web + API
