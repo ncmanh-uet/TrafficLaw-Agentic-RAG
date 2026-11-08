@@ -2,7 +2,7 @@
 
 Run from the repository root, for example::
 
-    python test/evaluation/benchmark_reranker.py --limit 10
+    python test/evaluation_retriever/benchmark_reranker.py --limit 10
 
 The benchmark keeps one fixed dense/BM25 retrieval pool for every experiment,
 then varies only whether reranking is enabled and how many fused candidates are
@@ -40,7 +40,7 @@ from Sources.rag_core.retriever import (
     DEFAULT_JSONL,
     TrafficHybridRetriever,
 )
-from test.evaluation.metrics import calculate_recall_at_k
+from test.evaluation_retriever.metrics import calculate_recall_at_k
 
 
 LOGGER = logging.getLogger("reranker_benchmark")
@@ -659,3 +659,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

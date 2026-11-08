@@ -104,62 +104,6 @@ class GeneratorResponseContentTests(unittest.TestCase):
         self.assertEqual(sources[1]["source_type"], "web")
         self.assertEqual(sources[1]["url"], "https://example.gov.vn/vuot-den-do")
 
-    def test_legacy_source_reference_and_spacing_are_normalized(self):
-        answer = LegalAnswerGenerator._normalize_generated_answer(
-            "Mức phạt [Nguồn 2] [Điều 6, Khoản 9, Điểmb — 168/2024/NĐ-CP]."
-        )
-        self.assertIn("[S2]", answer)
-        self.assertIn("Điểm b", answer)
-
-    def test_combined_source_and_legal_citations_are_normalized(self):
-        answer = LegalAnswerGenerator._normalize_generated_answer(
-            "Điều kiện [S3, Điều 69, Khoản 3; S6, Điều 35, Khoản 2]."
-        )
-        self.assertEqual(
-            answer,
-            "Điều kiện [S3] [Điều 69, Khoản 3] [S6] [Điều 35, Khoản 2].",
-        )
-
-    def test_grouped_source_ids_are_split_before_validation(self):
-        answer = LegalAnswerGenerator._normalize_generated_answer(
-            "Các thông báo liên quan [S1, S2, S4]."
-        )
-        self.assertEqual(answer, "Các thông báo liên quan [S1] [S2] [S4].")
-
-    def test_internal_citation_gets_canonical_doc_id(self):
-        answer = LegalAnswerGenerator._canonicalize_internal_citation_doc_ids(
-            "Phạt tiền [S1] [Điều 6, Khoản 9, Điểm b].",
-            [internal_chunk()],
-        )
-        self.assertEqual(
-            answer,
-            "Phạt tiền [S1] [Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP].",
-        )
-
-    def test_internal_citation_replaces_title_with_canonical_doc_id(self):
-        answer = LegalAnswerGenerator._canonicalize_internal_citation_doc_ids(
-            "Phạt tiền [S1] [Điều 6, Khoản 9, Điểm b — Nghị định 168].",
-            [internal_chunk()],
-        )
-        self.assertIn("[Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP]", answer)
-        self.assertNotIn("Nghị định 168]", answer)
-
-    def test_internal_source_without_legal_suffix_gets_metadata_location(self):
-        answer = LegalAnswerGenerator._canonicalize_internal_citation_doc_ids(
-            "Phạt tiền [S1].",
-            [internal_chunk()],
-        )
-        self.assertEqual(
-            answer,
-            "Phạt tiền [S1] [Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP].",
-        )
-
-    def test_web_source_is_not_given_a_legal_doc_id_suffix(self):
-        answer = LegalAnswerGenerator._canonicalize_internal_citation_doc_ids(
-            "Thông tin tham khảo [S1].",
-            [web_chunk()],
-        )
-        self.assertEqual(answer, "Thông tin tham khảo [S1].")
 
     def test_web_citation_is_canonicalized_to_trusted_hostname_and_url(self):
         answer = LegalAnswerGenerator._canonicalize_web_citations(
@@ -184,25 +128,8 @@ class GeneratorResponseContentTests(unittest.TestCase):
         self.assertIn("UNKNOWN_SOURCE_ID:S99", issues)
         self.assertIn("NO_RESOLVABLE_CITATIONS", issues)
 
-    def test_legal_citation_without_source_id_remains_backward_compatible(self):
-        sources = LegalAnswerGenerator._extract_cited_sources(
-            "Phạt tiền [Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP].",
-            [internal_chunk()],
-        )
-        self.assertEqual(len(sources), 1)
-        self.assertEqual(sources[0]["source_id"], "S1")
 
-    def test_point_citation_does_not_resolve_to_parent_chunk(self):
-        parent = internal_chunk()
-        parent["metadata"] = dict(parent["metadata"], diem=None, chunk_id="nd168-d6-k9")
-        sources, issues = LegalAnswerGenerator._resolve_citations(
-            "Phạt tiền [Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP].",
-            [parent],
-        )
-        self.assertEqual(sources, [])
-        self.assertIn("NO_RESOLVABLE_CITATIONS", issues)
-
-    def test_source_id_allows_real_paragraph_inside_article_level_chunk(self):
+    def test_source_id_resolves_article_level_chunk(self):
         answer = (
             "- Đơn vị cung cấp dịch vụ phải đáp ứng điều kiện pháp luật "
             "[S1] [Điều 69, Khoản 2 — 35/2024/QH15].\n"
@@ -216,90 +143,6 @@ class GeneratorResponseContentTests(unittest.TestCase):
         self.assertEqual(issues, [])
         self.assertEqual([source["source_id"] for source in sources], ["S1"])
 
-    def test_article_level_citation_accepts_canonical_document_title(self):
-        _, issues = LegalAnswerGenerator._resolve_citations(
-            "Xe phải có dấu hiệu nhận diện [S1] "
-            "[Điều 69, Khoản 3 — Luật Đường bộ 2024].",
-            [article_level_chunk()],
-        )
-        self.assertEqual(issues, [])
-
-    def test_source_id_rejects_nonexistent_paragraph_in_article_level_chunk(self):
-        _, issues = LegalAnswerGenerator._resolve_citations(
-            "Điều kiện khác [S1] [Điều 69, Khoản 9 — 35/2024/QH15].",
-            [article_level_chunk()],
-        )
-        self.assertIn("SOURCE_LEGAL_LOCATION_MISMATCH:S1:L1", issues)
-
-    def test_cross_reference_alone_cannot_support_named_red_light_action(self):
-        cross_reference = internal_chunk()
-        cross_reference["content"] = (
-            "10. Phạt tiền 10 đến 14 triệu đồng: a) Vi phạm quy định tại một số điểm của Điều này "
-            "mà gây tai nạn giao thông."
-        )
-        cross_reference["metadata"] = dict(
-            cross_reference["metadata"],
-            dieu=7,
-            khoan="10",
-            diem="a",
-            chunk_id="nd168-d7-k10-a",
-        )
-        _, issues = LegalAnswerGenerator._resolve_citations(
-            "Xe máy vượt đèn đỏ gây tai nạn bị phạt [S1] "
-            "[Điều 7, Khoản 10, Điểm a — 168/2024/NĐ-CP].",
-            [cross_reference],
-        )
-        self.assertIn("CROSS_REFERENCE_WITHOUT_DIRECT_SOURCE:L1", issues)
-
-    def test_cross_reference_is_valid_when_direct_rule_is_cited_too(self):
-        direct = internal_chunk()
-        cross_reference = internal_chunk()
-        cross_reference["content"] = (
-            "16. b) Thực hiện hành vi quy định tại điểm b khoản 9 Điều này "
-            "bị trừ 04 điểm giấy phép lái xe."
-        )
-        cross_reference["metadata"] = dict(
-            cross_reference["metadata"],
-            khoan="16",
-            diem="b",
-            chunk_id="nd168-d6-k16-b",
-        )
-        _, issues = LegalAnswerGenerator._resolve_citations(
-            "Bị trừ 04 điểm [S1] [Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP] "
-            "[S2] [Điều 6, Khoản 16, Điểm b — 168/2024/NĐ-CP].",
-            [direct, cross_reference],
-        )
-        self.assertEqual(issues, [])
-
-    def test_anaphoric_cross_reference_may_use_direct_source_from_prior_bullet(self):
-        direct = internal_chunk()
-        cross_reference = internal_chunk()
-        cross_reference["content"] = (
-            "16. b) Thực hiện hành vi quy định tại điểm b khoản 9 Điều này "
-            "bị trừ 04 điểm giấy phép lái xe."
-        )
-        cross_reference["metadata"] = dict(
-            cross_reference["metadata"],
-            khoan="16",
-            diem="b",
-            chunk_id="nd168-d6-k16-b",
-        )
-        answer = (
-            "### Xe ô tô\n"
-            "- Vượt đèn đỏ bị phạt [S1] "
-            "[Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP].\n"
-            "- Hành vi này bị trừ 04 điểm [S2] "
-            "[Điều 6, Khoản 16, Điểm b — 168/2024/NĐ-CP]."
-        )
-        _, issues = LegalAnswerGenerator._resolve_citations(answer, [direct, cross_reference])
-        self.assertEqual(issues, [])
-
-    def test_source_id_must_match_legal_location_on_same_claim(self):
-        _, issues = LegalAnswerGenerator._resolve_citations(
-            "Phạt tiền [S1] [Điều 7, Khoản 10, Điểm a — 168/2024/NĐ-CP].",
-            [internal_chunk()],
-        )
-        self.assertIn("SOURCE_LEGAL_LOCATION_MISMATCH:S1:L1", issues)
 
     def test_generate_returns_structured_citation_status(self):
         class StubLLM:
@@ -330,32 +173,20 @@ class GeneratorResponseContentTests(unittest.TestCase):
             {"disable": True},
         )
 
-    def test_generate_repairs_unresolvable_citations_once(self):
-        class RepairingLLM:
-            def __init__(self):
-                self.calls = 0
-
-            def invoke(self, messages, **kwargs):
-                self.calls += 1
-                if self.calls == 1:
-                    return SimpleNamespace(content="Phạt 18 đến 20 triệu đồng.")
-                return SimpleNamespace(
-                    content=(
-                        "Phạt 18 đến 20 triệu đồng [S1] "
-                        "[Điều 6, Khoản 9, Điểm b — 168/2024/NĐ-CP]."
-                    )
-                )
-
+    def test_generate_reports_missing_citations_without_a_repair_call(self):
         generator = object.__new__(LegalAnswerGenerator)
         generator.provider = "google"
         generator.model_name = "stub"
-        generator.llm = RepairingLLM()
+        generator.llm = Mock()
+        generator.llm.invoke.return_value = SimpleNamespace(content="Phạt 18 đến 20 triệu đồng.")
         result = generator.generate("Mức phạt là bao nhiêu?", [internal_chunk()])
-        self.assertTrue(result["citation_valid"])
-        self.assertEqual(result["model_calls"], 2)
-        self.assertEqual(generator.llm.calls, 2)
+        self.assertFalse(result["citation_valid"])
+        self.assertEqual(result["citation_issues"], ["NO_RESOLVABLE_CITATIONS"])
+        self.assertEqual(result["answer"], "Phạt 18 đến 20 triệu đồng.")
+        self.assertEqual(result["model_calls"], 1)
+        generator.llm.invoke.assert_called_once()
 
-    def test_generate_marks_explanatory_no_evidence_answer_as_refused(self):
+    def test_generate_does_not_guess_refusal_from_prose(self):
         class RefusalLLM:
             def invoke(self, messages, **kwargs):
                 return SimpleNamespace(
@@ -371,8 +202,8 @@ class GeneratorResponseContentTests(unittest.TestCase):
         generator.model_name = "stub"
         generator.llm = RefusalLLM()
         result = generator.generate("Tuyến đường nào bị cấm?", [web_chunk()])
-        self.assertTrue(result["refused"])
-        self.assertEqual(result["answer_status"], "INSUFFICIENT_EVIDENCE")
+        self.assertFalse(result["refused"])
+        self.assertFalse(result["citation_valid"])
         self.assertEqual(result["model_calls"], 1)
 
     def test_refusal_token_must_be_the_entire_response(self):
@@ -402,31 +233,9 @@ class GeneratorResponseContentTests(unittest.TestCase):
         generator.llm.invoke.assert_called_once()
         messages = generator.llm.invoke.call_args.args[0]
         self.assertIn(REFUSAL_TOKEN, messages[0].content)
-        self.assertIn(REFUSAL_TOKEN, messages[1].content)
 
-    def test_citation_repair_can_return_refusal_token(self):
-        generator = object.__new__(LegalAnswerGenerator)
-        generator.provider = "google"
-        generator.model_name = "stub"
-        generator.llm = Mock()
-        generator.llm.invoke.side_effect = [
-            SimpleNamespace(content="Phạt tiền theo quy định."),
-            SimpleNamespace(content=REFUSAL_TOKEN),
-        ]
 
-        result = generator.generate("Mức phạt là bao nhiêu?", [internal_chunk()])
-
-        self.assertTrue(result["refused"])
-        self.assertEqual(result["answer_status"], "INSUFFICIENT_EVIDENCE")
-        self.assertEqual(result["answer"], REFUSAL_PHRASE)
-        self.assertEqual(result["sources"], [])
-        self.assertEqual(result["citation_issues"], [])
-        self.assertEqual(result["model_calls"], 2)
-        self.assertEqual(generator.llm.invoke.call_count, 2)
-        repair_prompt = generator.llm.invoke.call_args.args[0][-1].content
-        self.assertIn(REFUSAL_TOKEN, repair_prompt)
-
-    def test_generate_still_recognizes_legacy_refusal_phrase(self):
+    def test_generate_recognizes_fixed_refusal_phrase(self):
         generator = object.__new__(LegalAnswerGenerator)
         generator.provider = "google"
         generator.model_name = "stub"

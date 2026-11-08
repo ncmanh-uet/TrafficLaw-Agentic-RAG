@@ -1,15 +1,19 @@
 # Retriever/reranker benchmark
 
+For the separate baseline-versus-agent comparison (reranker off), see
+[`test/evaluation_agent/README.md`](../evaluation_agent/README.md).
+Its two query entry points do not rerun this retrieval benchmark.
+
 Run a quick smoke benchmark from the repository root:
 
 ```powershell
-python test/evaluation/benchmark_reranker.py --limit 10
+python test/evaluation_retriever/benchmark_reranker.py --limit 10
 ```
 
 Run the full experiment matrix:
 
 ```powershell
-python test/evaluation/benchmark_reranker.py `
+python test/evaluation_retriever/benchmark_reranker.py `
   --dataset Data/test/evaluation.jsonl `
   --candidate-k 10 20 50 100 `
   --final-k 10 `
@@ -29,7 +33,7 @@ Initialization and the first three queries for every configuration are warm-up
 work and are excluded from timing. The same queries are subsequently executed
 again as ordinary measured samples, so no dataset row is omitted.
 
-Outputs are written to `test/evaluation/results/`:
+Outputs are written to `test/evaluation_retriever/results/`:
 
 - `reranker_benchmark_queries.jsonl`: per-query results and baseline comparison
 - `reranker_benchmark_summary.json`: aggregate metrics, environment metadata,
@@ -39,3 +43,4 @@ Outputs are written to `test/evaluation/results/`:
 The benchmark intentionally does not select one configuration automatically.
 Use the reported Recall@10 and P95 latency with the application's own latency
 target and resource constraints.
+

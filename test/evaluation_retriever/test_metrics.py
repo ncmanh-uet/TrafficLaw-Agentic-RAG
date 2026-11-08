@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from test.evaluation.metrics import calculate_recall_at_k
+from test.evaluation_retriever.metrics import calculate_recall_at_k
 
 
 class RecallAtKTests(unittest.TestCase):
