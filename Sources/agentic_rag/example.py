@@ -17,7 +17,7 @@ from .web_search import TavilySearchTool
 from .workflow import AgenticRAG
 
 
-def build_agent() -> AgenticRAG:
+def build_agent(*, provider=None, model=None, reasoning_effort=None, max_tokens=None) -> AgenticRAG:
     load_dotenv()
     config = AgentConfig()
     retriever = TrafficHybridRetriever(
@@ -28,8 +28,10 @@ def build_agent() -> AgenticRAG:
         enable_reranker=False,
     )
     generator = LegalAnswerGenerator(
-        provider=os.getenv("GENERATOR_PROVIDER", "google"),
-        model=os.getenv("GENERATOR_MODEL") or None,
+        provider=provider or os.getenv("GENERATOR_PROVIDER", "google"),
+        model=model or os.getenv("GENERATOR_MODEL") or None,
+        reasoning_effort=reasoning_effort or os.getenv("GENERATOR_REASONING_EFFORT") or None,
+        max_tokens=max_tokens if max_tokens is not None else int(os.getenv("GENERATOR_MAX_TOKENS", "1024")),
     )
     tavily = TavilySearchTool(config=config)
     return AgenticRAG(retriever, generator, tavily, config=config)
@@ -43,13 +45,18 @@ def main() -> None:
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Run one TrafficRAG Agentic RAG query")
     parser.add_argument("query", help="Vietnamese traffic-law question")
+    parser.add_argument("--provider", choices=("google", "openai"))
+    parser.add_argument("--model")
+    parser.add_argument("--reasoning-effort", choices=("none", "low", "medium", "high", "xhigh", "max"))
+    parser.add_argument("--max-tokens", type=int)
     parser.add_argument(
         "--debug",
         action="store_true",
         help="Print the complete state, including all evidence and trace fields",
     )
     args = parser.parse_args()
-    result = build_agent().invoke(args.query)
+    result = build_agent(provider=args.provider, model=args.model, reasoning_effort=args.reasoning_effort,
+                         max_tokens=args.max_tokens).invoke(args.query)
     if args.debug:
         output = result
     else:
