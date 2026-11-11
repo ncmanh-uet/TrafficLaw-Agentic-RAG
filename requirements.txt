@@ -1,6 +1,8 @@
 # Generative AI and Agent
 langchain-google-genai
 langchain-openai
+langchain-anthropic==1.7.2
+openai>=3.16.0,<4
 langgraph>=1.2.14,<1.3.0
 tavily-python>=0.8.5,<0.9.0
 
@@ -25,5 +27,15 @@ pgvector>=0.3.0
 # NLP
 
 sentence-transformers==4.1.0
+
+# Agent evaluation (same venv; compatible with the current runtime)
+tiktoken>=0.11.0,<1.0.0
+ragas==0.3.1
+langchain==1.4.3
+langchain-core==1.6.3
+langchain-community==0.4.1
+datasets==2.14.4
+pyarrow==20.0.0
+google-genai==2.24.0
 
 # Web + API

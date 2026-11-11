@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--query-id", help="Dataset query ID, e.g. q_001; optional for ad-hoc queries")
     parser.add_argument("--include-trace", action="store_true", help="Also save generation attempts and execution trace")
     parser.add_argument("--show-config", action="store_true", help="Print shared settings; no service/model calls")
-    parser.add_argument("--provider", choices=("google", "openai"), help="Generator provider; overrides GENERATOR_PROVIDER")
+    parser.add_argument("--provider", choices=("google", "openai", "anthropic"), help="Generator provider; overrides GENERATOR_PROVIDER")
     parser.add_argument("--model", help="Generator model; overrides GENERATOR_MODEL")
     parser.add_argument("--reasoning-effort", choices=("none", "low", "medium", "high", "xhigh", "max"))
     parser.add_argument("--max-tokens", type=int, help="Generation token budget, including reasoning")

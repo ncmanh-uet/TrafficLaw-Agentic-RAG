@@ -30,14 +30,17 @@ class ComparisonConfig:
     def __post_init__(self) -> None:
         if not self.generator_model.strip():
             raise ValueError("Set GENERATOR_MODEL explicitly to pin the comparison model.")
-        if self.generator_provider not in {"google", "openai"}:
-            raise ValueError("generator_provider must be google or openai")
+        if self.generator_provider not in {"google", "openai", "anthropic"}:
+            raise ValueError("generator_provider must be google, openai, or anthropic")
         if self.reasoning_effort is not None and self.reasoning_effort not in {
                 "none", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("Invalid generator reasoning effort")
         if self.generator_provider == "openai" and self.generator_model.startswith("gpt-6-luna"):
             object.__setattr__(self, "temperature", None)
             object.__setattr__(self, "reasoning_effort", self.reasoning_effort or "none")
+        if self.generator_provider == "anthropic":
+            object.__setattr__(self, "temperature", None)
+            object.__setattr__(self, "reasoning_effort", None)
         if self.enable_reranker:
             raise ValueError("This comparison requires enable_reranker=False.")
         if self.candidates_per_retriever < 1 or self.rrf_k < 1 or self.max_tokens < 1:

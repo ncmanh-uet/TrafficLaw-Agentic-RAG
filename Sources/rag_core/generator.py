@@ -156,9 +156,23 @@ class LegalAnswerGenerator:
                 google_api_key=key,
                 max_output_tokens=max_tokens,
             )
+        elif self.provider == "anthropic":
+            key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+            if not key:
+                raise ValueError(
+                    "Anthropic provider requires ANTHROPIC_API_KEY env var or api_key arg."
+                )
+            if not model:
+                raise ValueError("Anthropic provider requires an explicit model.")
+            from langchain_anthropic import ChatAnthropic
+
+            self.model_name = model
+            # Use the model's sampling defaults; Claude support for temperature
+            # varies by model. OpenAI reasoning_effort is not forwarded.
+            self.llm = ChatAnthropic(model=model, api_key=key, max_tokens=max_tokens)
         else:
             raise ValueError(
-                f"Unsupported provider '{provider}'. Use 'openai' or 'google'."
+                f"Unsupported provider '{provider}'. Use 'openai', 'google', or 'anthropic'."
             )
 
         logger.info(f"LegalAnswerGenerator: {self.provider} / {self.model_name}")

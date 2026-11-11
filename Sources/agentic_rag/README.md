@@ -106,6 +106,19 @@ To select GPT-6 Luna explicitly (requires `OPENAI_API_KEY`):
 python -m Sources.agentic_rag.example "Ô tô vượt đèn đỏ bị phạt bao nhiêu?" --provider openai --model gpt-6-luna --reasoning-effort low --max-tokens 4096
 ```
 
+To use Claude, install dependencies, fill in `ANTHROPIC_API_KEY` in `.env`, and
+select an available Claude model explicitly:
+
+```powershell
+python -m Sources.agentic_rag.example "Ô tô vượt đèn đỏ bị phạt bao nhiêu?" --provider anthropic --model YOUR_CLAUDE_MODEL --max-tokens 4096
+```
+
+Alternatively, set `GENERATOR_PROVIDER=anthropic` and `GENERATOR_MODEL` to the
+Claude model ID. Claude uses the model's default sampling settings;
+`temperature` and OpenAI's `reasoning_effort` are not forwarded to Anthropic.
+Benchmark query/collect support Claude generation; scoring judge providers
+remain Google and OpenAI.
+
 The same provider/model flags are available on the benchmark query and collect
 commands. Environment equivalents are `GENERATOR_PROVIDER`, `GENERATOR_MODEL`,
 `GENERATOR_REASONING_EFFORT`, and `GENERATOR_MAX_TOKENS`. Luna uses Responses

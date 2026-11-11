@@ -21,7 +21,7 @@ def main(argv=None):
     parser.add_argument("--split", choices=("pilot", "test"), default="pilot")
     parser.add_argument("--output", default="Data/test/results/pilot_outputs.jsonl")
     parser.add_argument("--resume", action="store_true")
-    parser.add_argument("--provider", choices=("google", "openai"), help="Generator provider")
+    parser.add_argument("--provider", choices=("google", "openai", "anthropic"), help="Generator provider")
     parser.add_argument("--model", help="Generator model")
     parser.add_argument("--reasoning-effort", choices=("none", "low", "medium", "high", "xhigh", "max"))
     parser.add_argument("--max-tokens", type=int, help="Generation token budget, including reasoning")

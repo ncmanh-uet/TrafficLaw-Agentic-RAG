@@ -45,7 +45,7 @@ def main() -> None:
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Run one TrafficRAG Agentic RAG query")
     parser.add_argument("query", help="Vietnamese traffic-law question")
-    parser.add_argument("--provider", choices=("google", "openai"))
+    parser.add_argument("--provider", choices=("google", "openai", "anthropic"))
     parser.add_argument("--model")
     parser.add_argument("--reasoning-effort", choices=("none", "low", "medium", "high", "xhigh", "max"))
     parser.add_argument("--max-tokens", type=int)
